@@ -1,6 +1,10 @@
 import numpy as np
 from glob import glob
 import random, itertools
+import sys
+
+sys.path.append('./MusDr/musdr/')
+
 
 from side_utils import (
   get_event_seq, 
