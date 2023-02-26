@@ -6,7 +6,7 @@ import sys
 sys.path.append('./MusDr/musdr/')
 
 
-from side_utils import (
+from .side_utils import (
   get_event_seq, 
   get_bars_crop, 
   get_pitch_histogram, 
