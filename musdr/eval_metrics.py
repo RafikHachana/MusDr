@@ -25,7 +25,7 @@ CHORD_EVS = {              # the IDs of Chord-related events
   'Chord-Slash': range(334, 346)
 }
 
-def compute_piece_pitch_entropy(piece_ev_seq, window_size, bar_ev_id=BAR_EV, pitch_evs=range(128), verbose=False):
+def compute_piece_pitch_entropy(piece_ev_seq, window_size, bar_ev_ids=[BAR_EV], pitch_evs=range(128), verbose=False):
   '''
   Computes the average pitch-class histogram entropy of a piece.
   (Metric ``H``)
@@ -41,10 +41,10 @@ def compute_piece_pitch_entropy(piece_ev_seq, window_size, bar_ev_id=BAR_EV, pit
     float: the average n-bar pitch-class histogram entropy of the input piece.
   '''
   # remove redundant ``Bar`` marker
-  if piece_ev_seq[-1] == bar_ev_id:
+  if piece_ev_seq[-1] in bar_ev_ids:
     piece_ev_seq = piece_ev_seq[:-1]
 
-  n_bars = piece_ev_seq.count(bar_ev_id)
+  n_bars = sum([piece_ev_seq.count(x) for x in bar_ev_ids])
   if window_size > n_bars:
     print ('[Warning] window_size: {} too large for the piece, falling back to #(bars) of the piece.'.format(window_size))
     window_size = n_bars
@@ -52,7 +52,7 @@ def compute_piece_pitch_entropy(piece_ev_seq, window_size, bar_ev_id=BAR_EV, pit
   # compute entropy of all possible segments
   pitch_ents = []
   for st_bar in range(0, n_bars - window_size + 1):
-    seg_ev_seq = get_bars_crop(piece_ev_seq, st_bar, st_bar + window_size - 1, bar_ev_id)
+    seg_ev_seq = get_bars_crop(piece_ev_seq, st_bar, st_bar + window_size - 1, bar_ev_ids)
 
     pitch_hist = get_pitch_histogram(seg_ev_seq, pitch_evs=pitch_evs)
     if pitch_hist is None:
@@ -64,7 +64,7 @@ def compute_piece_pitch_entropy(piece_ev_seq, window_size, bar_ev_id=BAR_EV, pit
 
   return np.mean(pitch_ents)
 
-def compute_piece_groove_similarity(piece_ev_seq, bar_ev_id=BAR_EV, pos_evs=POS_EVS, pitch_evs=range(128), max_pairs=1000):
+def compute_piece_groove_similarity(piece_ev_seq, bar_ev_ids=[BAR_EV], pos_evs=POS_EVS, pitch_evs=range(128), max_pairs=1000):
   '''
   Computes the average grooving pattern similarity between all pairs of bars of a piece.
   (Metric ``GS``)
@@ -80,14 +80,14 @@ def compute_piece_groove_similarity(piece_ev_seq, bar_ev_id=BAR_EV, pos_evs=POS_
     float: 0~1, the average grooving pattern similarity of the input piece.
   '''
   # remove redundant ``Bar`` marker
-  if piece_ev_seq[-1] == bar_ev_id:
+  if piece_ev_seq[-1] in bar_ev_ids:
     piece_ev_seq = piece_ev_seq[:-1]
 
   # get every single bar & compute indices of bar pairs
-  n_bars = piece_ev_seq.count(bar_ev_id)
+  n_bars = sum([piece_ev_seq.count(x) for x in bar_ev_ids])
   bar_seqs = []
   for b in range(n_bars):
-    bar_seqs.append( get_bars_crop(piece_ev_seq, b, b, bar_ev_id) )
+    bar_seqs.append( get_bars_crop(piece_ev_seq, b, b, bar_ev_ids) )
   pairs = list( itertools.combinations(range(n_bars), 2) )
   if len(pairs) > max_pairs:
     pairs = random.sample(pairs, max_pairs)
@@ -96,7 +96,7 @@ def compute_piece_groove_similarity(piece_ev_seq, bar_ev_id=BAR_EV, pos_evs=POS_
   grv_sims = []
   for p in pairs:
     grv_sims.append(
-      1. - get_onset_xor_distance(bar_seqs[p[0]], bar_seqs[p[1]], bar_ev_id, pos_evs, pitch_evs=pitch_evs)
+      1. - get_onset_xor_distance(bar_seqs[p[0]], bar_seqs[p[1]], bar_ev_ids, pos_evs, pitch_evs=pitch_evs)
     )
 
   return np.mean(grv_sims)
@@ -115,7 +115,9 @@ def compute_piece_chord_progression_irregularity(piece_ev_seq, chord_evs=CHORD_E
   Returns:
     float: 0~1, the chord progression irregularity of the input piece, measured on the n-gram specified.
   '''
-  chord_seq = get_chord_sequence(piece_ev_seq, chord_evs)
+  # chord_seq = get_chord_sequence(piece_ev_seq, chord_evs)
+
+  chord_seq = [x for x in piece_ev_seq if x in chord_evs]
   if len(chord_seq) <= ngram:
     return 1.
 

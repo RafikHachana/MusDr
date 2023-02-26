@@ -102,7 +102,7 @@ def get_pitch_histogram(ev_seq, pitch_evs=range(128), verbose=False):
 
   return hist
 
-def get_onset_xor_distance(seq_a, seq_b, bar_ev_id, pos_evs, pitch_evs=range(128)):
+def get_onset_xor_distance(seq_a, seq_b, bar_ev_ids, pos_evs, pitch_evs=range(128)):
   '''
   Computes the XOR distance of onset positions between a pair of bars.
   
@@ -117,8 +117,8 @@ def get_onset_xor_distance(seq_a, seq_b, bar_ev_id, pos_evs, pitch_evs=range(128
     float: 0~1, the XOR distance between the 2 bars' (seq_a, seq_b) binary vectors of onsets.
   '''
   # sanity checks
-  assert seq_a[0] == bar_ev_id and seq_b[0] == bar_ev_id
-  assert seq_a.count(bar_ev_id) == 1 and seq_b.count(bar_ev_id) == 1
+  assert seq_a[0] in bar_ev_ids and seq_b[0] in bar_ev_ids
+  assert sum([seq_a.count(x) for x in bar_ev_ids]) == 1 and sum([seq_b.count(x) for x in bar_ev_ids]) == 1
 
   # compute binary onset vectors
   n_pos = len(pos_evs)
@@ -137,7 +137,7 @@ def get_onset_xor_distance(seq_a, seq_b, bar_ev_id, pos_evs, pitch_evs=range(128
   dist = np.sum( np.abs(a_onsets - b_onsets) ) / n_pos
   return dist
 
-def get_bars_crop(ev_seq, start_bar, end_bar, bar_ev_id, verbose=False):
+def get_bars_crop(ev_seq, start_bar, end_bar, bar_ev_ids, verbose=False):
   '''
   Returns the designated crop (bars) of the input piece.
 
@@ -156,8 +156,8 @@ def get_bars_crop(ev_seq, start_bar, end_bar, bar_ev_id, verbose=False):
 
   # get the indices of ``Bar`` events
   ev_seq = np.array(ev_seq)
-  bar_markers = np.where(ev_seq == bar_ev_id)[0]
-
+  bar_markers = np.where((ev_seq >= bar_ev_ids[0]) & (ev_seq <= bar_ev_ids[-1]))[0]
+ 
   if start_bar > len(bar_markers) - 1:
     raise ValueError('start_bar: {} beyond end of piece.'.format(start_bar))
 
